@@ -62,7 +62,16 @@
       "Description" : "(Optional) If passed, only launch nodes in these AZs (e.g., 'us-east-1a,us-east-1b'). Note: these must match up with the passed Subnets.",
       "Type" : "CommaDelimitedList",
       "Default" : ""
+    },
+    "AccessKeyId" : {
+      "Description" : "AWS account Access Key ID",
+      "Type" : "String"
+    },
+    "SecretAccessKey": {
+      "Description" : "AWS account Secret Access Key",
+      "Type" : "String"
     }
+
   },
 
   "Mappings" : {
@@ -99,40 +108,7 @@
   },
 
   "Resources" : {
-    "IAMUser" : {
-      "Type" : "AWS::IAM::User",
-      "Properties" : {
-        "Policies" : [{
-          "PolicyName" : "S3Access",
-          "PolicyDocument" : {
-            "Statement": [{
-              "Effect"   : "Allow",
-              "Action"   : "s3:*",
-              "Resource" : { "Fn::Join" : ["", ["arn:aws:s3:::", {"Ref" : "ExhibitorS3Bucket"} , "/*"]]}
-            }]
-          }
-        },
-        {
-          "PolicyName" : "IAMAccess",
-          "PolicyDocument" : {
-            "Statement" : [{
-              "Effect"    : "Allow",
-              "NotAction" : "iam:*",
-              "Resource"  : "*"
-            }]
-          }
-        }]
-      }
-    },
-
-    "HostKeys" : {
-      "Type" : "AWS::IAM::AccessKey",
-      "Properties" : {
-        "UserName" : {"Ref": "IAMUser"}
-      }
-    },
-
-    "ServerGroup" : {
+   "ServerGroup" : {
       "Type" : "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "AvailabilityZones" : {
@@ -182,8 +158,8 @@
           "   -p 8181:8181 -p 2181:2181 -p 2888:2888 -p 3888:3888",
           "   -e 'S3_BUCKET=", { "Ref" : "ExhibitorS3Bucket" }, "'",
           "   -e 'S3_PREFIX=", { "Ref" : "ExhibitorS3Prefix" }, "'",
-          "   -e 'AWS_ACCESS_KEY_ID=", { "Ref" : "HostKeys" }, "'",
-          "   -e 'AWS_SECRET_ACCESS_KEY=", {"Fn::GetAtt": ["HostKeys", "SecretAccessKey"]}, "'",
+          "   -e 'AWS_ACCESS_KEY_ID=", { "Ref" : "AccessKeyId" }, "'",
+          "   -e 'AWS_SECRET_ACCESS_KEY=", { "Ref" : "SecretAccessKey" }, "'",
           "   -e 'AWS_REGION=", { "Ref" : "ExhibitorS3Region" }, "'",
           "   -e \"HOSTNAME=`ec2metadata --public-hostname`\"",
           "   ", { "Ref": "DockerImage" }, "\n",

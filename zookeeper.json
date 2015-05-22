@@ -32,7 +32,7 @@
     "DockerImage" : {
       "Description" : "Path of the ZK+Exhibitor Docker image (format: '[<registry>[:<port>]/]<repository>:<version>')",
       "Type" : "String",
-      "Default" : "mbabineau/zookeeper-exhibitor:3.4.6_1.5.4"
+      "Default" : "mbabineau/zookeeper-exhibitor"
     },
     "ExhibitorS3Bucket" : {
       "Description" : "Bucket for Exhibitor backups of ZK configs",

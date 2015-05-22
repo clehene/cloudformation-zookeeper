@@ -77,28 +77,31 @@
   "Mappings" : {
     "RegionMap" : {
       "us-east-1" : {
-        "AMI" : "ami-96163afe"
+        "AMI" : "ami-96a818fe"
       },
       "us-west-1" : {
-        "AMI" : "ami-117c9a55"
+        "AMI" : "ami-6bcfc42e"
       },
       "us-west-2" : {
-        "AMI" : "ami-8d123ebd"
+        "AMI" : "ami-c7d092f7"
+      },
+      "eu-central-1" : {
+        "AMI" : "ami-7cc4f661"
       },
       "eu-west-1" : {
-        "AMI" : "ami-8be47afc"
+        "AMI" : "ami-e4ff5c93"
       },
       "ap-southeast-1" : {
-        "AMI" : "ami-64b88936"
+        "AMI" : "ami-aea582fc"
       },
       "ap-southeast-2" : {
-        "AMI" : "ami-abf48491"
+        "AMI" : "ami-bd523087"
       },
       "ap-northeast-1" : {
-        "AMI" : "ami-3d62953d"
+        "AMI" : "ami-89634988"
       },
       "sa-east-1" : {
-        "AMI" : "ami-db1fa7c6"
+        "AMI" : "ami-bf9520a2"
       }
     }
   },
@@ -153,17 +156,51 @@
           "}\n",
 
           "# Set up and start the Exhibitor+ZooKeeper service\n",
-          "docker pull ", { "Ref": "DockerImage" }, "\n",
-          "runit-service create zk docker run ",
+          "cat << EOF > /etc/systemd/system/zookeeper.service\n",
+          "[Unit]\n",
+          "Description=Exhibitor Zookeper\n",
+          "After=docker.service\n",
+          "Requires=docker.service\n",
+
+          "[Service]\n",
+          "Type=Simple\n",
+          "TimeoutStartSec=0\n",
+          "EnvironmentFile=/etc/environment\n",
+
+          "ExecStartPre=-/usr/bin/docker rm -f ex-zk1\n",
+          "ExecStartPre=/usr/bin/docker run --privileged --rm -v /opt/bin:/opt/bin ibuildthecloud/systemd-docker\n",
+          "ExecStartPre=/usr/bin/docker pull ", { "Ref": "DockerImage" }, "\n",
+          "ExecStart=/opt/bin/systemd-docker --cgroups name=systemd run --name ez-zk1 ",
           "   -p 8181:8181 -p 2181:2181 -p 2888:2888 -p 3888:3888",
           "   -e 'S3_BUCKET=", { "Ref" : "ExhibitorS3Bucket" }, "'",
           "   -e 'S3_PREFIX=", { "Ref" : "ExhibitorS3Prefix" }, "'",
           "   -e 'AWS_ACCESS_KEY_ID=", { "Ref" : "AccessKeyId" }, "'",
           "   -e 'AWS_SECRET_ACCESS_KEY=", { "Ref" : "SecretAccessKey" }, "'",
           "   -e 'AWS_REGION=", { "Ref" : "ExhibitorS3Region" }, "'",
-          "   -e \"HOSTNAME=`ec2metadata --public-hostname`\"",
+          "   -e \"HOSTNAME=`curl http://169.254.169.254/latest/meta-data/public-hostname`\"",
           "   ", { "Ref": "DockerImage" }, "\n",
-          "runit-service enable zk\n",
+ 
+          "ExecStop=/usr/bin/docker stop ex-zk1\n",
+          "ExecStopPost=-/usr/bin/docker rm -f ex-zk1\n",
+          "Restart=always\n",
+          "RestartSec=10\n",
+          "Type=notify\n",
+          "NotifyAccess=all\n",
+          "TimeoutStartSec=120\n",
+          "TimeoutStopSec=10\n",
+          "\n\n",
+          "[Install]\n",
+          "WantedBy=multi-user.target\n",
+          "EOF\n",
+
+
+          "# Install Docker\n",
+          "yum install docker -y\n",
+          "systemctl enable docker\n",
+          "systemctl start docker\n",
+
+          "systemctl enable zookeeper.service\n",
+          "systemctl start zookeeper.service\n",
 
           "# All is well so signal success\n",
           "cfn-signal -e 0 -r \"Stack setup complete\" '", { "Ref" : "WaitHandle" }, "'\n",
